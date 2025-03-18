@@ -811,10 +811,10 @@ class Mailer
                 'goodnews',
                 $this->modx->getOption('mail_smtp_hosts', null, 'localhost:25')
             );
-            $mailSmtpPrefix = $this->mailing->getProperty(
+            $mailSmtpSecure = $this->mailing->getProperty(
                 'mailSmtpPrefix',
                 'goodnews',
-                $this->modx->getOption('mail_smtp_prefix', null, '')
+                $this->modx->getOption('mail_smtp_secure', null, '')
             );
             $mailSmtpHelo = $this->mailing->getProperty(
                 'mailSmtpHelo',
@@ -846,7 +846,7 @@ class Mailer
             $mail->set(modMail::MAIL_SMTP_PASS, $mailSmtpPass);
             $mail->set(modMail::MAIL_SMTP_HOSTS, $mailSmtpHosts);
             $mail->set(modMail::MAIL_SMTP_PORT, $mailSmtpPort);
-            $mail->set(modMail::MAIL_SMTP_PREFIX, $mailSmtpPrefix);
+            $mail->set(modMail::MAIL_SMTP_SECURE, $mailSmtpSecure);
             if (!empty($mailSmtpHelo)) {
                 $mail->set(modMail::MAIL_SMTP_HELO, $mailSmtpHelo);
             }
