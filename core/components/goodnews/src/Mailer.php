@@ -1287,6 +1287,30 @@ class Mailer
 
 		$publishingResults = $stmt->rowCount();
 
+		//Activate autopublished resources (clear cache)
+		$sql = "UPDATE {$tblResource}, {$tblMailingMeta}
+        SET {$tblMailingMeta}.senton = :senton,
+            {$tblMailingMeta}.sentby = {$tblResource}.createdby,
+            {$tblMailingMeta}.ipc_status = :ipc_status,
+            {$tblMailingMeta}.scheduled = 1
+        WHERE {$tblMailingMeta}.mailing_id = {$tblResource}.id
+        AND {$tblResource}.class_key = :class_key
+        AND {$tblResource}.publishedon <= :timeNow
+		AND {$tblMailingMeta}.senton = 0
+		AND {$tblMailingMeta}.finishedon = 0
+		AND {$tblMailingMeta}.ipc_status = 0
+		AND {$tblMailingMeta}.scheduled = 0
+        AND {$tblMailingMeta}.recipients_total > 0";
+
+		$stmt = $this->modx->prepare($sql);
+
+		$stmt->bindValue(':senton', $timeNow, \PDO::PARAM_INT);
+		$stmt->bindValue(':ipc_status', $ipcStatus, \PDO::PARAM_INT);
+		$stmt->bindValue(':class_key', $class_key, \PDO::PARAM_STR);
+		$stmt->bindValue(':timeNow', $timeNow, \PDO::PARAM_INT);
+
+		$stmt->execute();
+
 		if ($this->debug) {
 			if ($publishingResults) {
 				$mailings = $publishingResults / 2; // wir haben 2 betroffene Tabellen pro Mailing
