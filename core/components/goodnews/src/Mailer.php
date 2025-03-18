@@ -1252,44 +1252,52 @@ class Mailer
      * @access private
      * @return int $publishingResults The number of mailings affected by the sql statement.
      */
-    private function startScheduledMailings()
-    {
-        $tblResource = $this->modx->getTableName(modResource::class);
-        $tblMailingMeta = $this->modx->getTableName(GoodNewsMailingMeta::class);
-        $timeNow = time();
-        $ipcStatus = self::GON_IPC_STATUS_STARTED;
+	private function startScheduledMailings()
+	{
+		$tblResource = $this->modx->getTableName(modResource::class);
+		$tblMailingMeta = $this->modx->getTableName(GoodNewsMailingMeta::class);
+		$class_key = GoodNewsResourceMailing::class;
+		$timeNow = time();
+		$ipcStatus = self::GON_IPC_STATUS_STARTED;
 
-        $sql = "UPDATE {$tblResource}, {$tblMailingMeta} 
-                SET {$tblMailingMeta}.senton = {$timeNow},
-                    {$tblMailingMeta}.sentby = {$tblResource}.createdby,
-                    {$tblMailingMeta}.ipc_status = {$ipcStatus},
-                    {$tblMailingMeta}.scheduled = 1,
-                    {$tblResource}.published = 1,
-                    {$tblResource}.publishedon = {$tblResource}.pub_date,
-                    {$tblResource}.publishedby = {$tblResource}.createdby,
-                    {$tblResource}.pub_date = 0 
-                WHERE {$tblMailingMeta}.mailing_id = {$tblResource}.id 
-                AND {$tblResource}.class_key = 'GoodNewsResourceMailing' 
-                AND {$tblResource}.pub_date IS NOT NULL 
-                AND {$tblResource}.pub_date < {$timeNow} 
-                AND {$tblResource}.pub_date > 0
-                AND {$tblMailingMeta}.recipients_total > 0";
+		$sql = "UPDATE {$tblResource}, {$tblMailingMeta}
+        SET {$tblMailingMeta}.senton = :senton,
+            {$tblMailingMeta}.sentby = {$tblResource}.createdby,
+            {$tblMailingMeta}.ipc_status = :ipc_status,
+            {$tblMailingMeta}.scheduled = 1,
+            {$tblResource}.published = 1,
+            {$tblResource}.publishedon = {$tblResource}.pub_date,
+            {$tblResource}.publishedby = {$tblResource}.createdby,
+            {$tblResource}.pub_date = 0
+        WHERE {$tblMailingMeta}.mailing_id = {$tblResource}.id
+        AND {$tblResource}.class_key = :class_key
+        AND {$tblResource}.pub_date IS NOT NULL
+        AND {$tblResource}.pub_date < :timeNow
+        AND {$tblResource}.pub_date > 0
+        AND {$tblMailingMeta}.recipients_total > 0";
 
-        $publishingResults = $this->modx->exec($sql);
-        if ($this->debug) {
-            if ($publishingResults) {
-                $mailings = $publishingResults / 2; // we always have two rows affected!
-                $this->modx->log(
-                    modX::LOG_LEVEL_INFO,
-                    '[GoodNews] [pid: ' .
-                    getmypid() .
-                    '] Mailer::autoPublish - autopublished mailings: ' .
-                    $mailings
-                );
-            }
-        }
-        return $publishingResults;
-    }
+		$stmt = $this->modx->prepare($sql);
+
+		$stmt->bindValue(':senton', $timeNow, \PDO::PARAM_INT);
+		$stmt->bindValue(':ipc_status', $ipcStatus, \PDO::PARAM_INT);
+		$stmt->bindValue(':class_key', $class_key, \PDO::PARAM_STR);
+		$stmt->bindValue(':timeNow', $timeNow, \PDO::PARAM_INT);
+
+		$stmt->execute();
+
+		$publishingResults = $stmt->rowCount();
+
+		if ($this->debug) {
+			if ($publishingResults) {
+				$mailings = $publishingResults / 2; // wir haben 2 betroffene Tabellen pro Mailing
+				$this->modx->log(
+					modX::LOG_LEVEL_INFO,
+					'[GoodNews] [pid: ' . getmypid() . '] Mailer::autoPublish - autopublished mailings: ' . $mailings
+				);
+			}
+		}
+		return $publishingResults;
+	}
 
     /**
      * Sets the IPC status of a mailing to "start".
